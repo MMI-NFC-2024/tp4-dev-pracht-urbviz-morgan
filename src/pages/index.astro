@@ -1,21 +1,130 @@
 ---
-import PlotFigure from "../components/PlotFigure.astro";
 import Layout from "../layouts/Layout.astro";
-import * as Plot from "@observablehq/plot";
-import penguins from "../assets/penguins.json";
+
+const examples = [
+  {
+    href: "/simple",
+    title: "Simple",
+    description: "Version minimale de Plot basee sur l'exemple ESM + CDN.",
+  },
+  {
+    href: "/penguins-simple",
+    title: "Penguins simples",
+    description: "Diagramme de dispersion des manchots sans interaction.",
+  },
+  {
+    href: "/penguins-filter",
+    title: "Penguins filtre",
+    description: "Ajout d'un filtre par espece a l'aide d'un select.",
+  },
+  {
+    href: "/penguins-multi-filters",
+    title: "Penguins filtres+",
+    description: "Filtres cumules pour espece, ile et sexe.",
+  },
+  {
+    href: "/citywages",
+    title: "City wages",
+    description: "Autre dataset : comparaison des salaires urbains.",
+  },
+];
 ---
 
-<Layout>
-  <h1 class="text-2xl">Test Astro et Plot (Observablehq)</h1>
-  <PlotFigure
-    options={{
-      marks: [
-        Plot.dot(penguins, {
-          x: "culmen_length_mm",
-          y: "culmen_depth_mm",
-          stroke: "species",
-        }),
-      ],
-    }}
-  />
+<Layout title="Accueil - TP Observable Plot">
+  <section class="hero">
+    <h1>Travaux pratiques Observable Plot</h1>
+    <p>
+      Toutes les experiences ci-dessous sont rendues cote client avec Astro et la
+      librairie <strong>@observablehq/plot</strong>.
+    </p>
+  </section>
+
+  <section class="examples" aria-label="Navigation vers les graphiques">
+    <ul class="card-list">
+      {examples.map((item) => (
+        <li class="card" key={item.href}>
+          <a class="card-link" href={item.href}>
+            <h2>{item.title}</h2>
+            <p>{item.description}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
 </Layout>
+
+<style>
+  .hero {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 2vw + 1.5rem, 3rem);
+    margin: 0;
+  }
+
+  .hero p {
+    margin: 0;
+    max-width: 50ch;
+    line-height: 1.6;
+  }
+
+  .card-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 12px 30px -20px rgba(33, 150, 243, 0.45);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 35px -18px rgba(33, 150, 243, 0.5);
+  }
+
+  .card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding: 1.25rem 1.5rem;
+  }
+
+  .card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+  }
+
+  .card p {
+    margin: 0;
+    line-height: 1.5;
+    color: rgba(0, 0, 0, 0.72);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .hero p {
+      color: rgba(240, 243, 247, 0.78);
+    }
+
+    .card {
+      background: rgba(12, 18, 27, 0.9);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 12px 30px -22px rgba(12, 110, 210, 0.65);
+    }
+
+    .card p {
+      color: rgba(214, 222, 233, 0.76);
+    }
+  }
+</style>

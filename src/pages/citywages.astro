@@ -1,0 +1,218 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="City wages - TP Observable Plot">
+  <section class="page-header">
+    <h1>City wages - evolution 1980 vs 2015</h1>
+    <p>
+      Comparaison des rapports de salaire (rapport 90/10) pour les principales
+      metropoles americaines. Le nuage de points confronte les valeurs de 1980 et
+      2015 avec un rayon en fonction de la population 2015.
+    </p>
+  </section>
+
+  <section class="controls controls-grid">
+    <label for="search-input">
+      <span>Rechercher une ville</span>
+      <input id="search-input" type="search" placeholder="ex: New York" />
+    </label>
+
+    <label for="highlight-select">
+      <span>Focus</span>
+      <select id="highlight-select">
+        <option value="all">Toutes</option>
+        <option value="highlight">Selection New York Times</option>
+        <option value="others">Autres metropoles</option>
+      </select>
+    </label>
+  </section>
+
+  <p id="citywages-summary" class="summary" aria-live="polite"></p>
+
+  <section>
+    <div id="citywages-plot" class="plot-surface" aria-live="polite"></div>
+  </section>
+</Layout>
+
+<script>
+  import * as Plot from "@observablehq/plot";
+  import citywages from "../assets/citywadges.json";
+
+  function normalize(text) {
+    if (typeof text !== "string") return text;
+    return text.normalize ? text.normalize("NFD").replace(/\p{Diacritic}/gu, "") : text;
+  }
+
+  function getFilteredData(inputSearch, selectHighlight) {
+    const query = normalize(inputSearch.value.trim().toLowerCase());
+    const focus = selectHighlight.value;
+
+    return citywages.filter((d) => {
+      if (focus === "highlight" && !d.highlight) {
+        return false;
+      }
+      if (focus === "others" && d.highlight) {
+        return false;
+      }
+      if (query) {
+        const label = normalize((d.nyt_display || "").toLowerCase());
+        if (!label.includes(query)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  function renderCityWages(inputSearch, selectHighlight) {
+    const container = document.getElementById("citywages-plot");
+    const summary = document.getElementById("citywages-summary");
+    if (!container || !summary) return;
+
+    container.innerHTML = "";
+
+    const filtered = getFilteredData(inputSearch, selectHighlight);
+    summary.textContent = `${filtered.length} metropoles affichees`;
+
+    const plot = Plot.plot({
+      height: 460,
+      grid: true,
+      x: {
+        label: "Rapport 90/10 en 1980",
+        domain: [3, 8],
+      },
+      y: {
+        label: "Rapport 90/10 en 2015",
+        domain: [3, 8],
+      },
+      color: {
+        legend: true,
+        label: "Focus",
+        type: "categorical",
+      },
+      marks: [
+        Plot.line([3, 8], { x: (d) => d, y: (d) => d, stroke: "#9e9e9e", opacity: 0.5 }),
+        Plot.dot(filtered, {
+          x: "R90_10_1980",
+          y: "R90_10_2015",
+          fill: (d) => (d.highlight ? "Selection" : "Autres"),
+          r: (d) => Math.sqrt(d.POP_2015) / 150,
+          title: (d) => `${d.nyt_display} \n1980: ${d.R90_10_1980} \n2015: ${d.R90_10_2015}`,
+        }),
+      ],
+    });
+
+    container.append(plot);
+  }
+
+  function setupCityWages() {
+    const inputSearch = document.getElementById("search-input");
+    const selectHighlight = document.getElementById("highlight-select");
+    if (!inputSearch || !selectHighlight) return;
+
+    const rerender = () => renderCityWages(inputSearch, selectHighlight);
+    inputSearch.addEventListener("input", rerender);
+    selectHighlight.addEventListener("change", rerender);
+    rerender();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupCityWages, { once: true });
+  } else {
+    setupCityWages();
+  }
+</script>
+
+<style>
+  .page-header {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: clamp(1.75rem, 2.2vw + 1.25rem, 2.5rem);
+  }
+
+  .page-header p {
+    margin: 0;
+    line-height: 1.6;
+    max-width: 65ch;
+  }
+
+  .controls {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .controls-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .controls label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+  }
+
+  .controls input,
+  .controls select {
+    border-radius: 0.6rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+
+  .summary {
+    font-size: 0.95rem;
+    margin: 0 0 1rem;
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .plot-surface {
+    min-height: 460px;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+    padding: 1rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .page-header p {
+      color: rgba(214, 222, 233, 0.78);
+    }
+
+    .controls {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(12, 18, 27, 0.9);
+    }
+
+    .controls input,
+    .controls select {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(18, 24, 34, 0.9);
+      color: #f0f3f7;
+    }
+
+    .summary {
+      color: rgba(214, 222, 233, 0.78);
+    }
+
+    .plot-surface {
+      border-color: rgba(255, 255, 255, 0.06);
+      background: rgba(12, 18, 27, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+  }
+</style>

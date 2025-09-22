@@ -1,0 +1,99 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Penguins simple - TP Observable Plot">
+  <section class="page-header">
+    <h1>Penguins - scatter plot</h1>
+    <p>
+      Diagramme de dispersion des manchots de Palmer pour comparer la longueur et la
+      profondeur du bec. Les points sont colores selon l'espece.
+    </p>
+  </section>
+
+  <section>
+    <div id="penguins-simple-plot" class="plot-surface" aria-live="polite"></div>
+  </section>
+</Layout>
+
+<script>
+  import * as Plot from "@observablehq/plot";
+  import penguins from "../assets/penguins.json";
+
+  function renderPenguinsSimple() {
+    const target = document.getElementById("penguins-simple-plot");
+    if (!target) return;
+    target.innerHTML = "";
+
+    const cleaned = penguins.filter(
+      (d) => d.culmen_length_mm != null && d.culmen_depth_mm != null
+    );
+
+    const plot = Plot.plot({
+      height: 440,
+      color: { legend: true, label: "Especes" },
+      grid: true,
+      x: { label: "Culmen length (mm)" },
+      y: { label: "Culmen depth (mm)" },
+      marks: [
+        Plot.dot(cleaned, {
+          x: "culmen_length_mm",
+          y: "culmen_depth_mm",
+          stroke: "species",
+          title: (d) => `${d.species} (${d.island})`,
+        }),
+      ],
+    });
+
+    target.append(plot);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", renderPenguinsSimple, { once: true });
+  } else {
+    renderPenguinsSimple();
+  }
+</script>
+
+<style>
+  .page-header {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: clamp(1.75rem, 2.2vw + 1.25rem, 2.5rem);
+  }
+
+  .page-header p {
+    margin: 0;
+    line-height: 1.6;
+    max-width: 60ch;
+  }
+
+  .plot-surface {
+    min-height: 440px;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+    padding: 1rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .page-header p {
+      color: rgba(214, 222, 233, 0.78);
+    }
+
+    .plot-surface {
+      border-color: rgba(255, 255, 255, 0.06);
+      background: rgba(12, 18, 27, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+  }
+</style>

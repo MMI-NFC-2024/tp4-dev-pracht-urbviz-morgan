@@ -1,0 +1,234 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const speciesOptions = [
+  { value: "", label: "All species" },
+  { value: "Adelie", label: "Adelie" },
+  { value: "Chinstrap", label: "Chinstrap" },
+  { value: "Gentoo", label: "Gentoo" },
+];
+
+const islandOptions = [
+  { value: "", label: "All islands" },
+  { value: "Biscoe", label: "Biscoe" },
+  { value: "Dream", label: "Dream" },
+  { value: "Torgersen", label: "Torgersen" },
+];
+
+const sexOptions = [
+  { value: "", label: "All sexes" },
+  { value: "MALE", label: "Male" },
+  { value: "FEMALE", label: "Female" },
+];
+---
+
+<Layout title="Penguins filtres+ - TP Observable Plot">
+  <section class="page-header">
+    <h1>Penguins - filtres multiples</h1>
+    <p>
+      Trois selects pour combiner les filtres d'espece, d'ile et de genre. Le graphique
+      se met a jour a chaque changement.
+    </p>
+  </section>
+
+  <section class="controls controls-grid">
+    <label for="species-select">
+      <span>Espece</span>
+      <select id="species-select" name="species-select">
+        {speciesOptions.map((option) => (
+          <option value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+
+    <label for="island-select">
+      <span>Ile</span>
+      <select id="island-select" name="island-select">
+        {islandOptions.map((option) => (
+          <option value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+
+    <label for="sex-select">
+      <span>Sexe</span>
+      <select id="sex-select" name="sex-select">
+        {sexOptions.map((option) => (
+          <option value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+  </section>
+
+  <p id="penguins-summary" class="summary" aria-live="polite"></p>
+
+  <section>
+    <div id="penguins-multi-plot" class="plot-surface" aria-live="polite"></div>
+  </section>
+</Layout>
+
+<script>
+  import * as Plot from "@observablehq/plot";
+  import penguins from "../assets/penguins.json";
+
+  function applyMultiFilters(selectSpecies, selectIsland, selectSex) {
+    const species = selectSpecies.value;
+    const island = selectIsland.value;
+    const sex = selectSex.value;
+
+    return penguins.filter((d) => {
+      if (d.culmen_length_mm == null || d.culmen_depth_mm == null) {
+        return false;
+      }
+      if (species && d.species !== species) {
+        return false;
+      }
+      if (island && d.island !== island) {
+        return false;
+      }
+      if (sex && d.sex !== sex) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  function renderPenguinsMulti(selectSpecies, selectIsland, selectSex) {
+    const container = document.getElementById("penguins-multi-plot");
+    const summary = document.getElementById("penguins-summary");
+    if (!container || !summary) return;
+
+    container.innerHTML = "";
+
+    const filtered = applyMultiFilters(selectSpecies, selectIsland, selectSex);
+    summary.textContent = `${filtered.length} penguins affiches`;
+
+    const plot = Plot.plot({
+      height: 440,
+      color: { legend: true, label: "Especes" },
+      grid: true,
+      x: { label: "Culmen length (mm)" },
+      y: { label: "Culmen depth (mm)" },
+      marks: [
+        Plot.dot(filtered, {
+          x: "culmen_length_mm",
+          y: "culmen_depth_mm",
+          stroke: "species",
+          symbol: "sex",
+          title: (d) => `${d.species} - ${d.sex ?? "?"}`,
+        }),
+      ],
+    });
+
+    container.append(plot);
+  }
+
+  function setupPenguinsMultiFilters() {
+    const selectSpecies = document.getElementById("species-select");
+    const selectIsland = document.getElementById("island-select");
+    const selectSex = document.getElementById("sex-select");
+    if (!selectSpecies || !selectIsland || !selectSex) return;
+
+    const selects = [selectSpecies, selectIsland, selectSex];
+    const rerender = () => renderPenguinsMulti(selectSpecies, selectIsland, selectSex);
+    selects.forEach((select) => select.addEventListener("change", rerender));
+    rerender();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupPenguinsMultiFilters, { once: true });
+  } else {
+    setupPenguinsMultiFilters();
+  }
+</script>
+
+<style>
+  .page-header {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: clamp(1.75rem, 2.2vw + 1.25rem, 2.5rem);
+  }
+
+  .page-header p {
+    margin: 0;
+    line-height: 1.6;
+    max-width: 60ch;
+  }
+
+  .controls {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .controls-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .controls label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+  }
+
+  .controls select {
+    border-radius: 0.6rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+
+  .summary {
+    font-size: 0.95rem;
+    margin: 0 0 1rem;
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .plot-surface {
+    min-height: 440px;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+    padding: 1rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .page-header p {
+      color: rgba(214, 222, 233, 0.78);
+    }
+
+    .controls {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(12, 18, 27, 0.9);
+    }
+
+    .controls select {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(18, 24, 34, 0.9);
+      color: #f0f3f7;
+    }
+
+    .summary {
+      color: rgba(214, 222, 233, 0.78);
+    }
+
+    .plot-surface {
+      border-color: rgba(255, 255, 255, 0.06);
+      background: rgba(12, 18, 27, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+  }
+</style>

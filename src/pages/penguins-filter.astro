@@ -1,0 +1,165 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const speciesOptions = [
+  { value: "", label: "All species" },
+  { value: "Adelie", label: "Adelie" },
+  { value: "Chinstrap", label: "Chinstrap" },
+  { value: "Gentoo", label: "Gentoo" },
+];
+---
+
+<Layout title="Penguins filtre - TP Observable Plot">
+  <section class="page-header">
+    <h1>Penguins - filtre par espece</h1>
+    <p>
+      Selecteur d'espece pour filtrer le jeu de donnees Palmer Penguins en temps
+      reel.
+    </p>
+  </section>
+
+  <section class="controls">
+    <label for="species-select">Espece</label>
+    <select id="species-select" name="species-select">
+      {speciesOptions.map((option) => (
+        <option value={option.value}>{option.label}</option>
+      ))}
+    </select>
+  </section>
+
+  <section>
+    <div id="penguins-filter-plot" class="plot-surface" aria-live="polite"></div>
+  </section>
+</Layout>
+
+<script>
+  import * as Plot from "@observablehq/plot";
+  import penguins from "../assets/penguins.json";
+
+  function renderPenguinsFilter() {
+    const selectSpecies = document.getElementById("species-select");
+    const container = document.getElementById("penguins-filter-plot");
+    if (!selectSpecies || !container) return;
+
+    container.innerHTML = "";
+
+    const species = selectSpecies.value;
+    const filtered = penguins.filter((d) => {
+      if (d.culmen_length_mm == null || d.culmen_depth_mm == null) {
+        return false;
+      }
+      if (!species) {
+        return true;
+      }
+      return d.species === species;
+    });
+
+    const plot = Plot.plot({
+      height: 440,
+      color: { legend: true, label: "Especes" },
+      grid: true,
+      x: { label: "Culmen length (mm)" },
+      y: { label: "Culmen depth (mm)" },
+      marks: [
+        Plot.dot(filtered, {
+          x: "culmen_length_mm",
+          y: "culmen_depth_mm",
+          stroke: "species",
+          title: (d) => `${d.species} (${d.island})`,
+        }),
+      ],
+    });
+
+    container.append(plot);
+  }
+
+  function setupPenguinsFilter() {
+    const selectSpecies = document.getElementById("species-select");
+    if (!selectSpecies) return;
+    selectSpecies.addEventListener("change", renderPenguinsFilter);
+    renderPenguinsFilter();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupPenguinsFilter, { once: true });
+  } else {
+    setupPenguinsFilter();
+  }
+</script>
+
+<style>
+  .page-header {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-header h1 {
+    margin: 0;
+    font-size: clamp(1.75rem, 2.2vw + 1.25rem, 2.5rem);
+  }
+
+  .page-header p {
+    margin: 0;
+    line-height: 1.6;
+    max-width: 60ch;
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .controls label {
+    font-weight: 600;
+  }
+
+  .controls select {
+    border-radius: 0.6rem;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    min-width: 180px;
+  }
+
+  .plot-surface {
+    min-height: 440px;
+    display: grid;
+    place-items: center;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+    padding: 1rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .page-header p {
+      color: rgba(214, 222, 233, 0.78);
+    }
+
+    .controls {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(12, 18, 27, 0.9);
+    }
+
+    .controls select {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(18, 24, 34, 0.9);
+      color: #f0f3f7;
+    }
+
+    .plot-surface {
+      border-color: rgba(255, 255, 255, 0.06);
+      background: rgba(12, 18, 27, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+  }
+</style>
